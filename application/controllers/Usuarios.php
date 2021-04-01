@@ -97,78 +97,76 @@ class Usuarios extends CI_Controller {
                     unset($data['password']);
                 }
 
-                $this->core_model->update('users', $data, array('id' => $usuario_id));{
+                if ($this->ion_auth->update($usuario_id, $data)) {
+                    //[perfil_usuario] => 1 ///Verificar
+                    $perfil_usuario_db = $this->ion_auth->get_users_groups($usuario_id)->row();
 
-                //[perfil_usuario] => 1 ///Verificar
+                    $perfil_usuario_post = $this->post('perfil_usuario');
 
-                $perfil_usuario_db = $this->ion_auth->get_users_groups($usuario_id)->row();
+                    /* Se for diferente, atualiza o grupo */
+                    if ($perfil_usuario_post != $perfil_usuario_db->id) {
 
-                $perfil_usuario_post = $this->post('perfil_usuario');
+                        $this->ion_auth->remove_from_group($perfil_usuario_db->id, $usuario_id);
+                        $this->ion_auth->add_to_group($perfil_usuario_post, $usuario_id);
+                    }
 
-                /* Se for diferente, atualiza o grupo */
-               if ($perfil_usuario_post != $perfil_usuario_db->id) {
-                   
-                   $this->ion_auth->remove_from_group($perfil_usuario_db->id, $usuario_id);
-                    $this->ion_auth->add_to_group($perfil_usuario_post, $usuario_id);
-               }
-               
-               $this->session->set_flashdata('sucesso', 'Dados salvos com sucesso');
-           } else {
+                    $this->session->set_flashdata('sucesso', 'Dados salvos com sucesso');
+                } else {
 
                     $this->session->set_flashdata('error', 'Erro ao salvar os dados');
+                }
+                redirect('usuarios');
+            } else {
+
+
+
+
+                $data = array(
+                    //*** Caso exista cria o array data
+                    //*** Título da página
+                    'titulo' => 'Editar usuário',
+                    //*** Estou enviando os dados deste usuário
+                    'usuario' => $this->ion_auth->user($usuario_id)->row(),
+                    //*** Trazer o perfil do usuário
+                    'perfil_usuario' => $this->ion_auth->get_users_groups($usuario_id)->row(),
+                );
+
+                //*** Carregando as Views
+                $this->load->view('layout/header', $data);
+                $this->load->view('usuarios/edit');
+                $this->load->view('layout/footer');
             }
-            
-        } else {
-            
-        
-
-
-        $data = array(
-        //*** Caso exista cria o array data
-        //*** Título da página
-        'titulo' => 'Editar usuário',
-        //*** Estou enviando os dados deste usuário
-        'usuario' => $this->ion_auth->user($usuario_id)->row(),
-        //*** Trazer o perfil do usuário
-        'perfil_usuario' => $this->ion_auth->get_users_groups($usuario_id)->row(),
-        );
-
-        //*** Carregando as Views
-        $this->load->view('layout/header', $data);
-        $this->load->view('usuarios/edit');
-        $this->load->view('layout/footer');
+        }
     }
+
+    public function email_check($email) {
+
+        $usuario_id = $this->input->post('usuario_id');
+
+        if ($this->core_model->get_by_id('users', array('email' => $email, 'id !=' => $usuario_id))) {
+
+            $this->form_validation->set_message('email_check', 'Esse e-mail já existe');
+
+            return FALSE;
+        } else {
+
+            return TRUE;
+        }
+    }
+
+    public function username_check($username) {
+
+        $usuario_id = $this->input->post('usuario_id');
+
+        if ($this->core_model->get_by_id('users', array('username' => $username, 'id !=' => $usuario_id))) {
+
+            $this->form_validation->set_message('username_check', 'Esse usuário já existe');
+
+            return FALSE;
+        } else {
+
+            return TRUE;
+        }
+    }
+
 }
-}
-
-public function email_check($email) {
-
-$usuario_id = $this->input->post('usuario_id');
-
-if ($this->core_model->get_by_id('users', array('email' => $email, 'id !=' => $usuario_id))) {
-
-    $this->form_validation->set_message('email_check', 'Esse e-mail já existe');
-
-    return FALSE;
-} else {
-
-    return TRUE;
-}
-}
-
-public function username_check($username) {
-
-$usuario_id = $this->input->post('usuario_id');
-
-if ($this->core_model->get_by_id('users', array('username' => $username, 'id !=' => $usuario_id))) {
-
-    $this->form_validation->set_message('username_check', 'Esse usuário já existe');
-
-    return FALSE;
-} else {
-
-    return TRUE;
-}
-}
-}
-
